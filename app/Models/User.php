@@ -36,6 +36,7 @@ class User extends Authenticatable
         'reporting_manager_id',
         'face_image',
         'face_encoding',
+        'fcm_token',
         'status',
         'device_id',
     ];

@@ -141,6 +141,12 @@ Route::middleware(['auth', 'active.employee', 'admin'])->prefix('admin')->group(
     Route::get('/holidays', [HolidayController::class, 'index'])->name('admin.holidays.index');
     Route::post('/holidays', [HolidayController::class, 'store'])->name('admin.holidays.store');
     Route::delete('/holidays/{id}', [HolidayController::class, 'destroy'])->name('admin.holidays.destroy');
+
+    // Announcements Management
+    Route::get('/announcements', [\App\Http\Controllers\Admin\AdminAnnouncementController::class, 'index'])->name('admin.announcements.index');
+    Route::get('/announcements/create', [\App\Http\Controllers\Admin\AdminAnnouncementController::class, 'create'])->name('admin.announcements.create');
+    Route::post('/announcements', [\App\Http\Controllers\Admin\AdminAnnouncementController::class, 'store'])->name('admin.announcements.store');
+    Route::delete('/announcements/{id}', [\App\Http\Controllers\Admin\AdminAnnouncementController::class, 'destroy'])->name('admin.announcements.destroy');
 });
 
 // Protected Employee Self Service Routes

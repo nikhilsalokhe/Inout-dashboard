@@ -22,6 +22,12 @@ class Kernel extends ConsoleKernel
                  ->dailyAt('23:59')
                  ->withoutOverlapping()
                  ->appendOutputTo(storage_path('logs/attendance-processor.log'));
+
+        // Send shift start and end reminders every minute
+        $schedule->command('attendance:send-reminders')
+                 ->everyMinute()
+                 ->withoutOverlapping()
+                 ->appendOutputTo(storage_path('logs/attendance-reminders.log'));
     }
 
     /**

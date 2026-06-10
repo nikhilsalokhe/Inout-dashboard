@@ -23,6 +23,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware(['auth:sanctum', 'active.employee', 'employee'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/register-fcm-token', [AuthController::class, 'registerFcmToken']);
     
     // Attendance
     Route::post('/register-face', [AttendanceController::class, 'registerFace']);
@@ -60,6 +61,7 @@ Route::middleware(['auth:sanctum', 'active.employee', 'employee'])->group(functi
     Route::get('/ess/salary-history', [EmployeeSelfServiceController::class, 'apiSalaryHistory']);
     Route::get('/ess/payslip/{id}', [EmployeeSelfServiceController::class, 'apiPayslipDetails']);
     Route::get('/notifications', [EmployeeSelfServiceController::class, 'apiNotifications']);
+    Route::get('/announcements', [EmployeeSelfServiceController::class, 'apiAnnouncements']);
     Route::post('/notifications/{id}/read', [EmployeeSelfServiceController::class, 'apiReadNotification']);
     Route::post('/ess/profile/update', [EmployeeSelfServiceController::class, 'apiUpdateProfile']);
     Route::get('/employee/profile', [EmployeeSelfServiceController::class, 'apiProfile']);

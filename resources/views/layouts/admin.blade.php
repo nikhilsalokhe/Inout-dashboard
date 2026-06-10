@@ -116,6 +116,11 @@
                         <span class="font-semibold text-sm">System Settings</span>
                     </a>
 
+                    <a href="{{ route('admin.announcements.index') }}" class="flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-300 {{ request()->routeIs('admin.announcements.*') ? 'sidebar-active text-white' : 'hover:bg-slate-900/50 hover:text-white hover:translate-x-1' }}">
+                        <i class="bi bi-megaphone-fill text-lg"></i>
+                        <span class="font-semibold text-sm">Announcements</span>
+                    </a>
+
                     <div class="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Time & Attendance</div>
 
                     <a href="{{ route('admin.attendance.board') }}" class="flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-300 {{ request()->routeIs('admin.attendance.board') ? 'sidebar-active text-white' : 'hover:bg-slate-900/50 hover:text-white hover:translate-x-1' }}">

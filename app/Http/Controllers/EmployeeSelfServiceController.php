@@ -299,6 +299,24 @@ class EmployeeSelfServiceController extends Controller
     }
 
     /**
+     * API: Get Announcements list targeted to the user's department/location, or global.
+     */
+    public function apiAnnouncements(Request $request)
+    {
+        $user = $request->user();
+        
+        $announcements = \App\Models\Announcement::forUser($user)
+            ->with(['creator:id,name'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $announcements
+        ]);
+    }
+
+    /**
      * API: Mark Notification as Read.
      */
     public function apiReadNotification(Request $request, $id)

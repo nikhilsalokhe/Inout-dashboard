@@ -67,4 +67,22 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Logged out successfully']);
     }
+
+    /**
+     * Register/update the FCM device token for push notifications.
+     */
+    public function registerFcmToken(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string|max:500',
+        ]);
+
+        $user = $request->user();
+        $user->fcm_token = $request->fcm_token;
+        $user->save();
+
+        return response()->json([
+            'message' => 'FCM token registered successfully',
+        ]);
+    }
 }

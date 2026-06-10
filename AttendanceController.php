@@ -1023,7 +1023,6 @@ class AttendanceController extends Controller
             'today' => [
                 'status'       => $todayStatus,
                 'check_in'     => $checkInTime,
-                'check_in_raw' => ($todayAttendance && $todayAttendance->check_in) ? Carbon::parse($todayAttendance->check_in)->toIso8601String() : null,
                 'check_out'    => $checkOutTime,
                 'working_hours' => $workedHours,
                 'remarks'      => $todayAttendance->remarks ?? null,
@@ -1039,7 +1038,6 @@ class AttendanceController extends Controller
             'weekly_summary'  => $weeklySummary,
             'monthly_summary' => $monthlySummary,
             'streak'          => $streak,
-            'face_recognition_enabled' => \App\Models\Setting::get('face_recognition_enabled', '1') == '1',
         ]);
     }
 
