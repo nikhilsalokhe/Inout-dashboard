@@ -37,10 +37,12 @@ class AdminOrgController extends Controller
     {
         $request->validate([
             'department_name' => 'required|string|max:100|unique:departments',
+            'attendance_method' => 'nullable|string|in:face,qr,face_or_qr,face_and_qr,manual,gps_only',
         ]);
 
         $department = Department::create([
             'department_name' => $request->department_name,
+            'attendance_method' => $request->attendance_method,
             'status' => 'active',
         ]);
 
@@ -59,10 +61,11 @@ class AdminOrgController extends Controller
         $request->validate([
             'department_name' => 'required|string|max:100|unique:departments,department_name,' . $id,
             'status' => 'required|in:active,inactive',
+            'attendance_method' => 'nullable|string|in:face,qr,face_or_qr,face_and_qr,manual,gps_only',
         ]);
 
         $oldData = $department->toArray();
-        $department->update($request->only('department_name', 'status'));
+        $department->update($request->only('department_name', 'status', 'attendance_method'));
 
         AuditLogger::log('organization', 'update_department', $oldData, $department->toArray());
 
@@ -162,6 +165,7 @@ class AdminOrgController extends Controller
     {
         $request->validate([
             'location_name' => 'required|string|max:150|unique:locations',
+            'address' => 'nullable|string|max:500',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'allowed_radius_meter' => 'nullable|integer|min:0',
@@ -169,6 +173,7 @@ class AdminOrgController extends Controller
 
         $location = Location::create([
             'location_name' => $request->location_name,
+            'address' => $request->address,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'allowed_radius_meter' => $request->allowed_radius_meter ?? 200,
@@ -189,6 +194,7 @@ class AdminOrgController extends Controller
 
         $request->validate([
             'location_name' => 'required|string|max:150|unique:locations,location_name,' . $id,
+            'address' => 'nullable|string|max:500',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'allowed_radius_meter' => 'nullable|integer|min:0',
@@ -196,7 +202,7 @@ class AdminOrgController extends Controller
         ]);
 
         $oldData = $location->toArray();
-        $data = $request->only('location_name', 'latitude', 'longitude', 'allowed_radius_meter', 'status');
+        $data = $request->only('location_name', 'address', 'latitude', 'longitude', 'allowed_radius_meter', 'status');
         $data['allowed_radius_meter'] = $data['allowed_radius_meter'] ?? 200;
         $location->update($data);
 
@@ -205,9 +211,6 @@ class AdminOrgController extends Controller
         return redirect()->route('admin.organization.index', ['tab' => 'locations'])->with('success', 'Location updated successfully.');
     }
 
-    /**
-     * Delete a location.
-     */
     public function destroyLocation($id)
     {
         $location = Location::withCount('employees')->findOrFail($id);
@@ -223,5 +226,68 @@ class AdminOrgController extends Controller
         AuditLogger::log('organization', 'delete_location', $oldData, null);
 
         return redirect()->route('admin.organization.index', ['tab' => 'locations'])->with('success', 'Location deleted successfully.');
+    }
+
+    /**
+     * Show QR Code page before downloading.
+     */
+    public function showQr($id)
+    {
+        $location = Location::findOrFail($id);
+
+        $payload = json_encode([
+            'type' => 'static_location_qr',
+            'location_id' => $location->id,
+            'name' => $location->location_name,
+            'lat' => $location->latitude,
+            'lng' => $location->longitude,
+            'timestamp' => now()->timestamp
+        ]);
+
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputType' => \chillerlan\QRCode\Output\QRMarkupSVG::class,
+            'eccLevel' => \chillerlan\QRCode\Common\EccLevel::H,
+            'svgViewBoxSize' => 500,
+            'addQuietzone' => true,
+            'imageBase64' => true,
+        ]);
+
+        $qrCodeBase64 = (new \chillerlan\QRCode\QRCode($options))->render($payload);
+
+        return view('admin.organization.show_qr', compact('location', 'qrCodeBase64'));
+    }
+
+    /**
+     * Download Static QR Code for Location Attendance.
+     */
+    public function downloadQr($id)
+    {
+        $location = Location::findOrFail($id);
+
+        // Define the payload for the QR code
+        $payload = json_encode([
+            'type' => 'static_location_qr',
+            'location_id' => $location->id,
+            'name' => $location->location_name,
+            'lat' => $location->latitude,
+            'lng' => $location->longitude,
+            'timestamp' => now()->timestamp
+        ]);
+
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputType' => \chillerlan\QRCode\Output\QRMarkupSVG::class,
+            'eccLevel' => \chillerlan\QRCode\Common\EccLevel::H,
+            'svgViewBoxSize' => 500,
+            'addQuietzone' => true,
+            'imageBase64' => false,
+        ]);
+
+        $qrCode = (new \chillerlan\QRCode\QRCode($options))->render($payload);
+
+        $filename = 'location_qr_' . str_replace(' ', '_', strtolower($location->location_name)) . '.svg';
+
+        return response($qrCode)
+            ->header('Content-type', 'image/svg+xml')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 }

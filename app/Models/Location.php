@@ -11,11 +11,12 @@ class Location extends Model
 
     protected $fillable = [
         'location_name',
+        'address',
         'latitude',
         'longitude',
         'allowed_radius_meter',
         'status',
-     ];
+    ];
 
     public function employees()
     {

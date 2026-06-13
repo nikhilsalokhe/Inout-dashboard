@@ -37,8 +37,13 @@ class AdminSettingController extends Controller
         $updatedCount = 0;
 
         foreach ($newSettings as $key => $value) {
-            // Treat null/empty as empty string or '0' if it is a toggle
-            $value = is_null($value) ? '' : (string)$value;
+            // Handle array values (like weekly_off_days)
+            if (is_array($value)) {
+                $value = json_encode($value);
+            } else {
+                // Treat null/empty as empty string or '0' if it is a toggle
+                $value = is_null($value) ? '' : (string)$value;
+            }
 
             $setting = Setting::where('key', $key)->first();
             if ($setting) {
@@ -90,11 +95,16 @@ class AdminSettingController extends Controller
         $faceKeys = ['face_recognition_enabled', 'live_face_detection_enabled', 'face_match_threshold', 'reject_multiple_faces', 'require_admin_approval_face_reset'];
         $geoKeys = ['geo_restriction_enabled', 'capture_selfie_enabled'];
         $securityKeys = ['allow_single_device', 'max_failed_attempts', 'failed_attempts_lock_duration', 'session_timeout'];
+        $overtimeKeys = ['overtime_module_enabled', 'weekly_off_days', 'overtime_approval_levels', 'allow_employee_overtime_request', 'overtime_rate_per_hour'];
 
+        $attendanceMethodKeys = ['global_attendance_method', 'require_gps_validation'];
+
+        if (in_array($key, $attendanceMethodKeys)) return 'attendance_method';
         if (in_array($key, $attendanceKeys)) return 'attendance';
         if (in_array($key, $faceKeys)) return 'face';
         if (in_array($key, $geoKeys)) return 'geo';
         if (in_array($key, $securityKeys)) return 'security';
+        if (in_array($key, $overtimeKeys)) return 'overtime';
         return 'general';
     }
 

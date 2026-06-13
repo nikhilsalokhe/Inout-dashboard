@@ -144,6 +144,7 @@
                             <th class="px-6 py-4">Clock Out</th>
                             <th class="px-6 py-4 text-center">Hours</th>
                             <th class="px-6 py-4">Proximity / Geofence</th>
+                            <th class="px-6 py-4">Method</th>
                             <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4">Remarks / Activity</th>
                             <th class="px-6 py-4 text-right">Actions</th>
@@ -207,6 +208,15 @@
                                         @endif
                                     @else
                                         <span class="text-slate-300">N/A</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($row['method_used'])
+                                        <span class="text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">
+                                            {{ str_replace('_', ' ', $row['method_used']) }}
+                                        </span>
+                                    @else
+                                        <span class="text-slate-300">—</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4">

@@ -26,6 +26,10 @@ use App\Http\Controllers\Admin\SalaryController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\HRAnalyticsController;
 use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Admin\AdminOvertimePolicyController;
+use App\Http\Controllers\Admin\AdminOvertimeAssignmentController;
+use App\Http\Controllers\Admin\AdminOvertimeDashboardController;
+use App\Http\Controllers\Admin\AdminOvertimeRequestController;
 use App\Http\Controllers\EmployeeSelfServiceController;
 
 Route::get('/', function () {
@@ -95,6 +99,8 @@ Route::middleware(['auth', 'active.employee', 'admin'])->prefix('admin')->group(
     Route::post('/organization/locations', [AdminOrgController::class, 'storeLocation'])->name('admin.organization.locations.store');
     Route::post('/organization/locations/{id}/update', [AdminOrgController::class, 'updateLocation'])->name('admin.organization.locations.update');
     Route::delete('/organization/locations/{id}', [AdminOrgController::class, 'destroyLocation'])->name('admin.organization.locations.destroy');
+    Route::get('/organization/locations/{id}/show-qr', [AdminOrgController::class, 'showQr'])->name('admin.organization.locations.show-qr');
+    Route::get('/organization/locations/{id}/qr', [AdminOrgController::class, 'downloadQr'])->name('admin.organization.locations.qr');
 
     // Organization Hierarchy Tree
     Route::get('/org-tree', [OrgTreeController::class, 'index'])->name('admin.org-tree');
@@ -114,6 +120,26 @@ Route::middleware(['auth', 'active.employee', 'admin'])->prefix('admin')->group(
     Route::get('/face-resets/{id}', [AdminFaceResetController::class, 'show'])->name('admin.face-resets.show');
     Route::post('/face-resets/{id}/approve', [AdminFaceResetController::class, 'approve'])->name('admin.face-resets.approve');
     Route::post('/face-resets/{id}/reject', [AdminFaceResetController::class, 'reject'])->name('admin.face-resets.reject');
+
+    // Overtime Management
+    Route::get('/overtime/policies', [AdminOvertimePolicyController::class, 'index'])->name('admin.overtime.policies.index');
+    Route::get('/overtime/policies/create', [AdminOvertimePolicyController::class, 'create'])->name('admin.overtime.policies.create');
+    Route::post('/overtime/policies', [AdminOvertimePolicyController::class, 'store'])->name('admin.overtime.policies.store');
+    Route::get('/overtime/policies/{policy}/edit', [AdminOvertimePolicyController::class, 'edit'])->name('admin.overtime.policies.edit');
+    Route::post('/overtime/policies/{policy}/update', [AdminOvertimePolicyController::class, 'update'])->name('admin.overtime.policies.update');
+    Route::delete('/overtime/policies/{policy}', [AdminOvertimePolicyController::class, 'destroy'])->name('admin.overtime.policies.destroy');
+
+    Route::get('/overtime/assignments', [AdminOvertimeAssignmentController::class, 'index'])->name('admin.overtime.assignments.index');
+    Route::post('/overtime/assignments', [AdminOvertimeAssignmentController::class, 'store'])->name('admin.overtime.assignments.store');
+    Route::delete('/overtime/assignments/{assignment}', [AdminOvertimeAssignmentController::class, 'destroy'])->name('admin.overtime.assignments.destroy');
+
+    // Overtime Dashboard & Approvals
+    Route::get('/overtime/dashboard', [AdminOvertimeDashboardController::class, 'index'])->name('admin.overtime.dashboard');
+    Route::get('/overtime/requests', [AdminOvertimeRequestController::class, 'index'])->name('admin.overtime.requests.index');
+    Route::post('/overtime/requests/{record}/manager-approve', [AdminOvertimeRequestController::class, 'managerApprove'])->name('admin.overtime.requests.manager-approve');
+    Route::post('/overtime/requests/{record}/hr-approve', [AdminOvertimeRequestController::class, 'hrApprove'])->name('admin.overtime.requests.hr-approve');
+    Route::post('/overtime/requests/{record}/reject', [AdminOvertimeRequestController::class, 'reject'])->name('admin.overtime.requests.reject');
+    Route::post('/overtime/requests/bulk-approve', [AdminOvertimeRequestController::class, 'bulkApprove'])->name('admin.overtime.requests.bulk-approve');
 
     // Settings Management
     Route::get('/settings', [AdminSettingController::class, 'index'])->name('admin.settings.index');

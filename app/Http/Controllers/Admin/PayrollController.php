@@ -14,6 +14,7 @@ use App\Models\EmployeeSalary;
 use App\Models\Payroll;
 use App\Models\Setting;
 use App\Models\AuditLog;
+use App\Models\OvertimeRecord;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -356,7 +357,7 @@ class PayrollController extends Controller
                     $presentDaysCount++;
                 }
                 
-                // Overtime
+                // Legacy: accumulate simple OT hours for attendance rows (used as fallback only)
                 if ($att->working_hours && $att->shift && $att->working_hours > $att->shift->minimum_working_hours) {
                     $overtimeHoursTotal += ($att->working_hours - $att->shift->minimum_working_hours);
                 }
@@ -418,8 +419,26 @@ class PayrollController extends Controller
         $latePenaltyRate = (float) Setting::get('late_penalty_per_mark', '100');
         $latePenalty = round($lateMarksCount * $latePenaltyRate, 2);
 
-        $otRate = (float) Setting::get('overtime_rate_per_hour', '150');
-        $overtimeAmount = round($overtimeHoursTotal * $otRate, 2);
+        // -------------------------------------------------------
+        // Overtime: pull from approved OvertimeRecord (policy-based)
+        // Falls back to flat-rate calculation if no approved records
+        // -------------------------------------------------------
+        $approvedOTRecords = OvertimeRecord::where('user_id', $employee->id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->where('status', 'hr_approved')
+            ->get();
+
+        if ($approvedOTRecords->isNotEmpty()) {
+            // Use policy-engine amounts
+            $overtimeAmount = round($approvedOTRecords->sum('amount'), 2);
+            $overtimeHoursTotal = round($approvedOTRecords->sum('hours'), 2);
+
+            // Mark these records as processed and link to payroll (payroll_id set after save below)
+        } else {
+            // Legacy fallback: flat rate
+            $otRate = (float) Setting::get('overtime_rate_per_hour', '150');
+            $overtimeAmount = round($overtimeHoursTotal * $otRate, 2);
+        }
 
         $pf = $structure->pf_enabled ? round($basic * 0.12, 2) : 0.00;
         $esic = $structure->esic_enabled ? round($gross * 0.0075, 2) : 0.00;
@@ -430,7 +449,7 @@ class PayrollController extends Controller
         $netSalary = max(0, $totalEarnings - $totalDeductions);
 
         // Save to Database
-        return Payroll::updateOrCreate(
+        $payroll = Payroll::updateOrCreate(
             ['employee_id' => $employee->id, 'month' => $month, 'year' => $year],
             [
                 'gross_salary' => $gross,
@@ -456,6 +475,17 @@ class PayrollController extends Controller
                 'generated_at' => now(),
             ]
         );
+
+        // Link approved OT records to this payroll and mark them as processed
+        if (isset($approvedOTRecords) && $approvedOTRecords->isNotEmpty()) {
+            OvertimeRecord::whereIn('id', $approvedOTRecords->pluck('id'))
+                ->update([
+                    'status'     => 'processed',
+                    'payroll_id' => $payroll->id,
+                ]);
+        }
+
+        return $payroll;
     }
 
     /**

@@ -22,6 +22,7 @@ class Attendance extends Model
         'login_type',
         'image',
         'remarks',
+        'method_used',
     ];
 
     public function user()

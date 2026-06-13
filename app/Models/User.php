@@ -35,6 +35,7 @@ class User extends Authenticatable
         'position_id',
         'reporting_manager_id',
         'face_image',
+        'attendance_method',
         'face_encoding',
         'fcm_token',
         'status',
@@ -71,7 +72,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the department of the employee.
+     * Get the user's department.
      */
     public function department()
     {
@@ -79,7 +80,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the location of the employee.
+     * Get the user's primary location.
      */
     public function location()
     {
@@ -300,5 +301,21 @@ class User extends Authenticatable
     public function scopeTerminated($query)
     {
         return $query->whereIn('employment_status', ['terminated', 'resigned', 'absconded', 'retired', 'contract_completed']);
+    }
+
+    /**
+     * Get overtime policies assigned to this user.
+     */
+    public function overtimePolicies()
+    {
+        return $this->morphMany(OvertimePolicyAssignment::class, 'assignable');
+    }
+
+    /**
+     * Get overtime records for the user.
+     */
+    public function overtimeRecords()
+    {
+        return $this->hasMany(OvertimeRecord::class, 'user_id');
     }
 }

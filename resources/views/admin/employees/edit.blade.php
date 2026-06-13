@@ -188,6 +188,22 @@
                         @error('employee_type') <p class="text-rose-500 text-xs mt-1.5 font-medium">{{ $message }}</p> @enderror
                     </div>
 
+                    <!-- Attendance Method -->
+                    <div>
+                        <label for="attendance_method" class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Attendance Method Override</label>
+                        <select name="attendance_method" id="attendance_method"
+                            class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-indigo-500/80 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all duration-300 text-sm font-semibold bg-white">
+                            <option value="" {{ old('attendance_method', $employee->attendance_method) == '' ? 'selected' : '' }}>Inherit from Department/Global</option>
+                            <option value="face" {{ old('attendance_method', $employee->attendance_method) == 'face' ? 'selected' : '' }}>Face Recognition</option>
+                            <option value="qr" {{ old('attendance_method', $employee->attendance_method) == 'qr' ? 'selected' : '' }}>QR Code</option>
+                            <option value="face_or_qr" {{ old('attendance_method', $employee->attendance_method) == 'face_or_qr' ? 'selected' : '' }}>Face Recognition OR QR Code</option>
+                            <option value="face_and_qr" {{ old('attendance_method', $employee->attendance_method) == 'face_and_qr' ? 'selected' : '' }}>Face Recognition AND QR Code</option>
+                            <option value="manual" {{ old('attendance_method', $employee->attendance_method) == 'manual' ? 'selected' : '' }}>Manual (Button Click)</option>
+                            <option value="gps_only" {{ old('attendance_method', $employee->attendance_method) == 'gps_only' ? 'selected' : '' }}>GPS Only</option>
+                        </select>
+                        @error('attendance_method') <p class="text-rose-500 text-xs mt-1.5 font-medium">{{ $message }}</p> @enderror
+                    </div>
+
                     <!-- Joining Date -->
                     <div>
                         <label for="joining_date" class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Joining Date</label>

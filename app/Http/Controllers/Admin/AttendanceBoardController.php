@@ -179,6 +179,7 @@ class AttendanceBoardController extends Controller
                 'remarks' => $remarks,
                 'gps_distance' => $record ? $record->distance_km : null,
                 'gps_location' => $record ? $record->location : null,
+                'method_used' => $record ? $record->method_used : null,
             ];
         }
 

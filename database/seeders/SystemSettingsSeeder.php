@@ -15,6 +15,10 @@ class SystemSettingsSeeder extends Seeder
     public function run()
     {
         $settings = [
+            // Attendance Method group
+            ['key' => 'global_attendance_method', 'value' => 'face', 'group' => 'attendance_method'],
+            ['key' => 'require_gps_validation', 'value' => '1', 'group' => 'attendance_method'],
+
             // Attendance group
             ['key' => 'checkout_mandatory', 'value' => '1', 'group' => 'attendance'],
             ['key' => 'auto_checkout_enabled', 'value' => '0', 'group' => 'attendance'],
@@ -37,6 +41,13 @@ class SystemSettingsSeeder extends Seeder
             ['key' => 'max_failed_attempts', 'value' => '3', 'group' => 'security'],
             ['key' => 'failed_attempts_lock_duration', 'value' => '15', 'group' => 'security'],
             ['key' => 'session_timeout', 'value' => '120', 'group' => 'security'],
+
+            // Overtime group
+            ['key' => 'overtime_module_enabled', 'value' => '0', 'group' => 'overtime'],
+            ['key' => 'weekly_off_days', 'value' => '["Saturday","Sunday"]', 'group' => 'overtime'],
+            ['key' => 'overtime_approval_levels', 'value' => '1', 'group' => 'overtime'],
+            ['key' => 'allow_employee_overtime_request', 'value' => '0', 'group' => 'overtime'],
+            ['key' => 'overtime_rate_per_hour', 'value' => '150', 'group' => 'overtime'],
         ];
 
         foreach ($settings as $setting) {

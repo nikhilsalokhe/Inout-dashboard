@@ -18,6 +18,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\EmployeeSelfServiceController;
+use App\Http\Controllers\Api\OvertimeController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -66,7 +67,13 @@ Route::middleware(['auth:sanctum', 'active.employee', 'employee'])->group(functi
     Route::post('/ess/profile/update', [EmployeeSelfServiceController::class, 'apiUpdateProfile']);
     Route::get('/employee/profile', [EmployeeSelfServiceController::class, 'apiProfile']);
 
+    // Overtime API (Mobile)
+    Route::get('/overtime/summary', [OvertimeController::class, 'summary']);
+    Route::get('/overtime/history', [OvertimeController::class, 'history']);
+    Route::post('/overtime/request', [OvertimeController::class, 'requestOvertime']);
+
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 });
+

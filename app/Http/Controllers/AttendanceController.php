@@ -332,9 +332,50 @@ class AttendanceController extends Controller
             }
         }
 
-        // 3. Failed Biometric Attempts lockout check
-        $faceRecognitionEnabled = \App\Models\Setting::get('face_recognition_enabled', '1') == '1';
-        if ($faceRecognitionEnabled) {
+        // 3. Determine Attendance Method
+        $methodService = app(\App\Services\AttendanceMethodService::class);
+        $method = $methodService->getApplicableMethod($user);
+        
+        $faceRequired = in_array($method, ['face', 'face_and_qr']);
+        $qrRequired = in_array($method, ['qr', 'face_and_qr']);
+        $faceOrQr = $method === 'face_or_qr';
+        
+        $usingFace = false;
+        $usingQr = false;
+        $qrPayload = $request->input('qr_payload');
+        $hasImage = $request->hasFile('image');
+
+        if ($faceOrQr) {
+            if ($hasImage) $usingFace = true;
+            elseif (!empty($qrPayload)) $usingQr = true;
+            else return response()->json(['message' => 'Please provide either a face scan or scan a QR code to clock in.'], 400);
+        } else {
+            $usingFace = $faceRequired;
+            $usingQr = $qrRequired;
+        }
+
+        $methodUsed = $method;
+        if ($method === 'face_or_qr') {
+            $methodUsed = $usingFace ? 'face' : 'qr';
+        }
+
+        // Validate QR if required
+        if ($usingQr) {
+            if (empty($qrPayload)) {
+                return response()->json(['message' => 'QR Code scan is required to clock in.'], 400);
+            }
+            $qrData = json_decode($qrPayload, true);
+            if (!$qrData || !isset($qrData['location_id']) || $qrData['type'] !== 'static_location_qr') {
+                return response()->json(['message' => 'Invalid QR Code format.'], 400);
+            }
+            // Ensure QR location matches assigned location
+            if ($qrData['location_id'] != $user->location_id && !$user->permittedLocations->contains('id', $qrData['location_id'])) {
+                return response()->json(['message' => 'This QR Code does not match your permitted office locations.'], 403);
+            }
+        }
+
+        // Failed Biometric Attempts lockout check
+        if ($usingFace) {
             $maxFailed = (int)\App\Models\Setting::get('max_failed_attempts', '3');
             $lockDuration = (int)\App\Models\Setting::get('failed_attempts_lock_duration', '15');
             $lockoutTime = Carbon::now()->subMinutes($lockDuration);
@@ -371,19 +412,25 @@ class AttendanceController extends Controller
         }
 
         // 4. Capture selfie requirements
-        $selfieRequired = \App\Models\Setting::get('capture_selfie_enabled', '1') == '1' || $faceRecognitionEnabled;
-        if ($selfieRequired && !$request->hasFile('image')) {
+        $selfieRequired = \App\Models\Setting::get('capture_selfie_enabled', '1') == '1' || $usingFace;
+        
+        // If using strictly QR (and not Face), override selfie requirement to false because frontend does not send image for QR-only
+        if ($usingQr && !$usingFace) {
+            $selfieRequired = false;
+        }
+
+        if ($selfieRequired && !$hasImage) {
             return response()->json(['message' => 'Verification photo is required to clock in.'], 400);
         }
 
         $imagePath = null;
         $verificationResult = ['success' => true, 'status' => 'success', 'confidence' => 100.00, 'liveness_passed' => true];
 
-        if ($request->hasFile('image')) {
+        if ($hasImage) {
             $file = $request->file('image');
             $imageBase64 = $this->resizeAndEncodeBase64($file->getRealPath());
 
-            if ($faceRecognitionEnabled) {
+            if ($usingFace) {
                 // Verify face with all security checks
                 $verificationResult = $this->verifyFace($user, $imageBase64);
                 
@@ -412,7 +459,7 @@ class AttendanceController extends Controller
             // Store check-in image
             $imagePath = $file->store('attendance', 'public');
 
-            if ($faceRecognitionEnabled) {
+            if ($usingFace) {
                 // Log successful biometrics attempt
                 FaceRecognitionLog::create([
                     'user_id' => $user->id,
@@ -473,8 +520,7 @@ class AttendanceController extends Controller
             }
         } else {
             // Location coordinate is missing but restriction is enabled
-            $geoRestrictionEnabled = \App\Models\Setting::get('geo_restriction_enabled', '0') == '1';
-            if ($geoRestrictionEnabled) {
+            if ($methodService->isGpsValidationRequired()) {
                 return response()->json(['message' => 'Location / GPS coordinates are required for attendance.'], 403);
             }
             // No location provided — mark as remote login
@@ -497,6 +543,7 @@ class AttendanceController extends Controller
                 'status'     => $status,
                 'remarks'    => $remarks,
                 'image'      => $imagePath,
+                'method_used'=> $methodUsed,
             ]
         );
 
@@ -539,9 +586,45 @@ class AttendanceController extends Controller
             }
         }
 
-        // 2. Failed Biometric Attempts lockout check
-        $faceRecognitionEnabled = \App\Models\Setting::get('face_recognition_enabled', '1') == '1';
-        if ($faceRecognitionEnabled) {
+        // 2. Determine Attendance Method
+        $methodService = app(\App\Services\AttendanceMethodService::class);
+        $method = $methodService->getApplicableMethod($user);
+        
+        $faceRequired = in_array($method, ['face', 'face_and_qr']);
+        $qrRequired = in_array($method, ['qr', 'face_and_qr']);
+        $faceOrQr = $method === 'face_or_qr';
+        
+        $usingFace = false;
+        $usingQr = false;
+        $qrPayload = $request->input('qr_payload');
+        $hasImage = $request->hasFile('image');
+
+        if ($faceOrQr) {
+            if ($hasImage) $usingFace = true;
+            elseif (!empty($qrPayload)) $usingQr = true;
+            else return response()->json(['message' => 'Please provide either a face scan or scan a QR code to clock out.'], 400);
+        } else {
+            $usingFace = $faceRequired;
+            $usingQr = $qrRequired;
+        }
+
+        // Validate QR if required
+        if ($usingQr) {
+            if (empty($qrPayload)) {
+                return response()->json(['message' => 'QR Code scan is required to clock out.'], 400);
+            }
+            $qrData = json_decode($qrPayload, true);
+            if (!$qrData || !isset($qrData['location_id']) || $qrData['type'] !== 'static_location_qr') {
+                return response()->json(['message' => 'Invalid QR Code format.'], 400);
+            }
+            // Ensure QR location matches assigned location
+            if ($qrData['location_id'] != $user->location_id && !$user->permittedLocations->contains('id', $qrData['location_id'])) {
+                return response()->json(['message' => 'This QR Code does not match your permitted office locations.'], 403);
+            }
+        }
+
+        // Failed Biometric Attempts lockout check
+        if ($usingFace) {
             $maxFailed = (int)\App\Models\Setting::get('max_failed_attempts', '3');
             $lockDuration = (int)\App\Models\Setting::get('failed_attempts_lock_duration', '15');
             $lockoutTime = Carbon::now()->subMinutes($lockDuration);
@@ -578,19 +661,25 @@ class AttendanceController extends Controller
         }
 
         // 3. Capture selfie requirements
-        $selfieRequired = \App\Models\Setting::get('capture_selfie_enabled', '1') == '1' || $faceRecognitionEnabled;
-        if ($selfieRequired && !$request->hasFile('image')) {
+        $selfieRequired = \App\Models\Setting::get('capture_selfie_enabled', '1') == '1' || $usingFace;
+        
+        // If using strictly QR (and not Face), override selfie requirement to false because frontend does not send image for QR-only
+        if ($usingQr && !$usingFace) {
+            $selfieRequired = false;
+        }
+
+        if ($selfieRequired && !$hasImage) {
             return response()->json(['message' => 'Verification photo is required to clock out.'], 400);
         }
 
         $imagePath = null;
         $verificationResult = ['success' => true, 'status' => 'success', 'confidence' => 100.00, 'liveness_passed' => true];
 
-        if ($request->hasFile('image')) {
+        if ($hasImage) {
             $file = $request->file('image');
             $imageBase64 = $this->resizeAndEncodeBase64($file->getRealPath());
 
-            if ($faceRecognitionEnabled) {
+            if ($usingFace) {
                 // Verify face with all security checks
                 $verificationResult = $this->verifyFace($user, $imageBase64);
                 
@@ -616,10 +705,10 @@ class AttendanceController extends Controller
                 }
             }
 
-            // Store checkout image
+            // Store check-out image
             $imagePath = $file->store('attendance', 'public');
 
-            if ($faceRecognitionEnabled) {
+            if ($usingFace) {
                 // Log successful biometrics attempt
                 FaceRecognitionLog::create([
                     'user_id' => $user->id,
@@ -632,6 +721,8 @@ class AttendanceController extends Controller
                 ]);
             }
         }
+
+
 
         $checkOutTime = Carbon::now();
         $attendance->check_out = $checkOutTime;
@@ -698,16 +789,20 @@ class AttendanceController extends Controller
         if ($shift) {
             $attendance->shift_id = $shift->id;
             
-            // Overtime & Under-time metrics
-            $overtime = 0.00;
+            // Under-time metrics
             $undertime = 0.00;
 
-            if ($workingHours > $shift->minimum_working_hours) {
-                $overtime = round($workingHours - $shift->minimum_working_hours, 2);
-                $statusRemarks .= " Overtime: {$overtime} hrs.";
-            } elseif ($workingHours < $shift->minimum_working_hours && $workingHours > $shift->half_day_time) {
+            if ($workingHours < $shift->minimum_working_hours && $workingHours > $shift->half_day_time) {
                 $undertime = round($shift->minimum_working_hours - $workingHours, 2);
                 $statusRemarks .= " Under-time: {$undertime} hrs.";
+            }
+
+            // Trigger new Overtime Calculator Engine
+            try {
+                $calculator = new \App\Services\OvertimeCalculatorService();
+                $calculator->processAttendance($attendance);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Overtime Calculation Failed: ' . $e->getMessage());
             }
 
             // Check Working Hours Policies
@@ -736,7 +831,15 @@ class AttendanceController extends Controller
                 $attendance->remarks = "Half-Day: Worked < 8 hrs | Under-time: " . round(8 - $workingHours, 2) . " hrs.";
             } else {
                 $attendance->status = 'present';
-                $attendance->remarks = "On-time default shift completion | Overtime: " . round($workingHours - 8, 2) . " hrs.";
+                $attendance->remarks = "On-time default shift completion";
+                
+                // Trigger new Overtime Calculator Engine for default shift
+                try {
+                    $calculator = new \App\Services\OvertimeCalculatorService();
+                    $calculator->processAttendance($attendance);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Overtime Calculation Failed: ' . $e->getMessage());
+                }
             }
         }
 
@@ -1019,6 +1122,8 @@ class AttendanceController extends Controller
             }
         }
 
+        $methodService = app(\App\Services\AttendanceMethodService::class);
+
         return response()->json([
             'today' => [
                 'status'       => $todayStatus,
@@ -1040,6 +1145,8 @@ class AttendanceController extends Controller
             'monthly_summary' => $monthlySummary,
             'streak'          => $streak,
             'face_recognition_enabled' => \App\Models\Setting::get('face_recognition_enabled', '1') == '1',
+            'attendance_method' => $methodService->getApplicableMethod($user),
+            'require_gps_validation' => $methodService->isGpsValidationRequired(),
         ]);
     }
 
@@ -1385,7 +1492,7 @@ class AttendanceController extends Controller
      */
     private function checkGeofence(User $user, float $latitude, float $longitude): array
     {
-        $geoRestrictionEnabled = \App\Models\Setting::get('geo_restriction_enabled', '0') == '1';
+        $geoRestrictionEnabled = app(\App\Services\AttendanceMethodService::class)->isGpsValidationRequired();
 
         // Collect all locations the employee is allowed to clock in from
         $locations = collect();

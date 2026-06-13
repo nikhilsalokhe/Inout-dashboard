@@ -12,6 +12,7 @@ class Department extends Model
     protected $fillable = [
         'department_name',
         'status',
+        'attendance_method',
     ];
 
     public function positions()
@@ -22,5 +23,10 @@ class Department extends Model
     public function employees()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function overtimePolicies()
+    {
+        return $this->morphMany(OvertimePolicyAssignment::class, 'assignable');
     }
 }

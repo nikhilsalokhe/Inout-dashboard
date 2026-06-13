@@ -189,6 +189,7 @@ class EmployeeController extends Controller
             'shift_id' => 'nullable|exists:shifts,id',
             'salary_structure_id' => 'nullable|exists:salary_structures,id',
             'gross_salary' => 'nullable|numeric|min:0',
+            'attendance_method' => 'nullable|string|in:face,qr,face_or_qr,face_and_qr,manual,gps_only',
         ]);
 
         DB::transaction(function () use ($request, $employee) {
@@ -207,6 +208,7 @@ class EmployeeController extends Controller
                 'contract_start_date' => $request->employee_type === 'contract' ? $request->contract_start_date : null,
                 'contract_end_date' => $request->employee_type === 'contract' ? $request->contract_end_date : null,
                 'status' => $request->status,
+                'attendance_method' => $request->attendance_method,
             ];
 
             if ($request->filled('password')) {
